@@ -123,6 +123,26 @@ while parallel_env.agents:
     observations, rewards, terminations, truncations, infos = parallel_env.step(actions)
 ```
 
+### Keeping agents that have left the environment
+
+A Parallel environment stops returning values for an agent once it has terminated or been truncated, so the set of agents can shrink during an episode. `BlackDeathParallelV4` keeps every agent until the whole episode ends: an agent that has left receives an all-zeros observation, a reward of `0.0` and an empty info, and any action supplied for it is ignored. This gives learning code that expects a fixed set of agents a stable one. Only `Box` observation spaces are supported.
+
+```python
+from pettingzoo.sisl import multiwalker_v9
+from pettingzoo.utils.wrappers import BlackDeathParallelV4
+
+env = BlackDeathParallelV4(multiwalker_v9.parallel_env(terminate_on_fall=False))
+observations, infos = env.reset(seed=42)
+
+while env.agents:
+    # A walker that has fallen stays in env.agents and observes zeros
+    actions = {agent: env.action_space(agent).sample() for agent in env.agents}
+    observations, rewards, terminations, truncations, infos = env.step(actions)
+env.close()
+```
+
+While any agent is still active, `terminations` and `truncations` are `False` for every agent, including the ones that have left. On the step that ends the episode each agent reports the flags it left with, and `env.agents` becomes empty. This class replaces SuperSuit's `black_death_v3`, which reported the same value in both dictionaries and so could not tell a termination from a truncation.
+
 ```{eval-rst}
 .. currentmodule:: pettingzoo.utils.wrappers
 
@@ -134,6 +154,7 @@ while parallel_env.agents:
 .. autoclass:: ClipRewardV1
 .. autoclass:: ClipRewardParallelV1
 .. autoclass:: OrderEnforcingWrapper
+.. autoclass:: BlackDeathParallelV4
 .. autoclass:: NanZerosV1
 .. autoclass:: NanZerosParallelV1
 .. autoclass:: AgentIndicatorV1
