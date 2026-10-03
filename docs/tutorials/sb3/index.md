@@ -12,6 +12,7 @@ For environments with visual observation spaces, we use a [CNN](https://stable-b
 
 For non-visual environments, we use [MLP](https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html#stable_baselines3.ppo.MlpPolicy) policies and do not perform any pre-processing steps.
 
+* [Parallel environment vectorization](/tutorials/sb3/vectorization/): _Train a shared PPO policy in Multiwalker without SuperSuit_
 * [Action Masked PPO for Connect Four](/tutorials/sb3/connect_four/): _Train agents using Action Masked PPO in an AEC environment_
 
 Not every documentation GIF needs a trained model. Where a hand-written rule already plays the environment well, it is cheaper to reproduce and easier to review.
@@ -53,6 +54,7 @@ For more information, see the [Stable-Baselines3 v1.0 Blog Post](https://araffin
 :caption: SB3
 
 kaz
+vectorization
 connect_four
 cooperative_pong
 ```

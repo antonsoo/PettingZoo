@@ -42,6 +42,10 @@ jobs:
                   fi
                   AutoROM -v
                   for f in *.py; do xvfb-run -a -s "-screen 0 1024x768x24" python "$f"; done
+                  if [ "${{ matrix.tutorial }}" = "SB3/test" ]; then
+                    cd "$root_dir"
+                    SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -n 0 test/sb3_vec_env_test.py
+                  fi
 
     agilerl-tutorial-test:
         runs-on: ubuntu-22.04

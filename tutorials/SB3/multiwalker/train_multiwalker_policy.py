@@ -22,43 +22,40 @@ from __future__ import annotations
 import argparse
 
 import numpy as np
-import supersuit as ss
 from stable_baselines3 import PPO
 
-from pettingzoo.sisl import multiwalker_v9
+from pettingzoo import make
+from pettingzoo.utils.sb3 import SB3ParallelVecEnv
 
 MODEL = "multiwalker_ppo"
 
 
 def make_env(n_envs: int = 8):
-    env = multiwalker_v9.parallel_env(max_cycles=500)
-    env = ss.pettingzoo_env_to_vec_env_v1(env)
-    return ss.concat_vec_envs_v1(
-        env, n_envs, num_cpus=1, base_class="stable_baselines3"
+    # Each world contributes three agent slots to the shared PPO policy.
+    return SB3ParallelVecEnv(
+        [
+            lambda: make("parallel", "sisl/multiwalker-v9", max_cycles=500)
+            for _ in range(n_envs)
+        ]
     )
 
 
 def train(steps: int, seed: int) -> None:
     """PPO on the default reward. gamma is high so distant forward progress survives discounting.
 
-    ``seed`` is applied to torch and numpy directly rather than through PPO's
-    own ``seed=``: SB3 forwards that to ``env.seed()``, which SuperSuit's
-    ConcatVecEnv does not implement, so passing it raises AttributeError.
+    PPO seeds the policy and schedules one environment seed per world through
+    the adapter. Agents sharing a world also share its reset seed.
 
     This pins the run, not the bytes of the checkpoint. PyTorch does not
     promise bit-identical results across versions or hardware, so the thing
     to reproduce is the reported displacement, not a file hash.
     """
-    import numpy as np
-    import torch
-
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-
+    env = make_env()
     model = PPO(
         "MlpPolicy",
-        make_env(),
+        env,
         verbose=1,
+        seed=seed,
         learning_rate=3e-4,
         n_steps=2048,
         batch_size=1024,
@@ -71,6 +68,7 @@ def train(steps: int, seed: int) -> None:
     )
     model.learn(total_timesteps=steps)
     model.save(MODEL)
+    env.close()
     print(f"saved {MODEL}.zip")
 
 
@@ -86,7 +84,9 @@ def render(path: str, seed: int, stride: int, scale: int) -> None:
         raise SystemExit("writing a GIF needs imageio: pip install imageio") from None
 
     model = PPO.load(MODEL)
-    env = multiwalker_v9.parallel_env(max_cycles=500, render_mode="rgb_array")
+    env = make(
+        "parallel", "sisl/multiwalker-v9", max_cycles=500, render_mode="rgb_array"
+    )
     observations, _ = env.reset(seed=seed)
     inner = env.unwrapped.env
     start_x = float(inner.package.position[0])
