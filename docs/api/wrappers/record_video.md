@@ -38,6 +38,8 @@ PettingZoo provides :class:`RecordVideo` for AEC environments and :class:`Record
 We'll show how to record every episode during evaluation and periodically during training using an AEC environment.
 ```
 
+The recorder keeps a copy of each captured image, including images returned as a list. An environment can reuse its render buffer, and changing a returned image will not change frames already retained for the video. Pending images returned by `render()` are also preserved until the caller receives them.
+
 ## Recording Every Episode (Evaluation)
 
 ```{eval-rst}

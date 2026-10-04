@@ -113,11 +113,14 @@ class RecordVideoParallel(BaseParallelWrapper[AgentID, ObsType, ActionType]):
         if isinstance(frame, list):
             if len(frame) == 0:
                 return
-            self.render_history += frame
+            self.render_history += [
+                item.copy() if isinstance(item, np.ndarray) else item for item in frame
+            ]
             frame = frame[-1]
 
         if isinstance(frame, np.ndarray):
-            self.recorded_frames.append(frame)
+            # Renderers may reuse their arrays; retain the captured state.
+            self.recorded_frames.append(frame.copy())
         else:
             self.stop_recording()
             gymnasium.logger.warn(
@@ -173,7 +176,7 @@ class RecordVideoParallel(BaseParallelWrapper[AgentID, ObsType, ActionType]):
         """Compute the render frames as specified by render_mode attribute during initialization of the environment."""
         render_out = self.env.render()
         if self.recording and isinstance(render_out, list):
-            self.recorded_frames += render_out
+            self.recorded_frames += [frame.copy() for frame in render_out]
 
         if len(self.render_history) > 0:
             tmp_history = self.render_history
